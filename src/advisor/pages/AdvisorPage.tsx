@@ -51,7 +51,10 @@ function Advisor() {
         <p role="status">The advisor model is not configured in this environment: replies are limited.</p>
       ) : null}
       <aside aria-label="Your conversations">
-        <button type="button" onClick={() => void start()} disabled={pending}>
+        <button type="button" className="new-conversation" onClick={() => void start()} disabled={pending}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
           {pending ? "Starting..." : "New conversation"}
         </button>
         {failure ? <p role="alert">{failure}</p> : null}
@@ -61,10 +64,13 @@ function Advisor() {
           conversations.data.data.length === 0 ? (
             <p>You have no conversations yet.</p>
           ) : (
-            <ul>
+            <ul className="conversations">
               {conversations.data.data.map((c) => (
                 <li key={c.id}>
-                  <NavLink to={`${base}/c/${c.id}`}>{new Date(c.createdAt).toLocaleString()}</NavLink>
+                  <NavLink to={`${base}/c/${c.id}`}>
+                    <span>Conversation</span>
+                    <time dateTime={c.createdAt}>{new Date(c.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</time>
+                  </NavLink>
                 </li>
               ))}
             </ul>
@@ -74,7 +80,10 @@ function Advisor() {
       {conversationId ? (
         <ChatPanel key={conversationId} conversationId={conversationId} />
       ) : (
-        <p>Open a conversation or start a new one.</p>
+        <div className="chat chat-empty">
+          <h3>Your academic advisor</h3>
+          <p>Open a conversation on the left or start a new one to ask about your progress, subjects, seats or schedule.</p>
+        </div>
       )}
     </div>
   );
