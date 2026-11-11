@@ -1,20 +1,20 @@
 import type { Conversation, Message, Page, Plan } from "../../advisor/model/advisor";
 
 // Synthetic data of the advisor domain (ADR-009): the people and sections of the seed (same ids
-// as the identity, catalog and enrollment fixtures), one earlier conversation of Laura and a
+// as the identity, catalog and enrollment fixtures), one earlier conversation of Estudiante Demo 01 and a
 // plan for ISW-602 group 1. The handlers answer like the advisor: an enrollment request gets a
 // plan, anything else a short grounded reply.
 
 export const students = {
-  laura: { id: "11111111-1111-4111-8111-111111111111", name: "Laura Gómez" },
-  santiago: { id: "11111111-1111-4111-8111-111111111112", name: "Santiago Rojas" },
+  student01: { id: "11111111-1111-4111-8111-111111111111", name: "Estudiante Demo 01" },
+  student02: { id: "11111111-1111-4111-8111-111111111112", name: "Estudiante Demo 02" },
 } as const;
 
 export const ISW_602_G1 = "55555555-5555-4555-8555-555555555510";
 
 export const conversation: Conversation = {
   id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01",
-  userId: students.laura.id,
+  userId: students.student01.id,
   userRole: "STUDENT",
   model: "gpt-4o-mini",
   createdAt: "2026-10-12T15:00:00Z",
@@ -42,7 +42,7 @@ export function planFor(conversationId: string, studentId: string, createdAt: st
       subjectCode: "ISW-602",
       subjectName: "Teoría de la Computación",
       groupNumber: 1,
-      professorName: "Ana Torres",
+      professorName: "Profesor Demo 02",
       slots: [
         { day: "TUE", start: "16:00", end: "18:00" },
         { day: "THU", start: "16:00", end: "18:00" },
