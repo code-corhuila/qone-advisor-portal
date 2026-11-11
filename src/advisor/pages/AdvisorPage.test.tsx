@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { delay, http } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { App } from "../App";
 import { advisorFixtures } from "../../mocks/fixtures/advisor";
@@ -143,3 +143,23 @@ test("a new conversation greets the student and a suggestion asks it", async () 
   expect(within(list).getAllByRole("listitem")[1]).toHaveTextContent("11 de 42");
 });
 
+test("over the message quota the chat says when to try again and keeps the question (#53)", async () => {
+  server.use(
+    http.post("*/api/v1/advisor/conversations/:id/messages", () =>
+      HttpResponse.json(
+        { error: "TOO_MANY_REQUESTS", message: "message quota reached: 30 per hour", traceId: "trace-429" },
+        { status: 429, headers: { "Retry-After": "1200" } },
+      ),
+    ),
+  );
+  open(`/advisor/c/${advisorFixtures.conversation.id}`);
+  const list = await screen.findByRole("list", { name: "Messages" });
+  await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(2));
+
+  await ask("¿Cuántos créditos llevo?");
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Enviaste muchos mensajes en poco tiempo. Intenta de nuevo en 20 minutos.");
+  expect(screen.getByRole("alert")).not.toHaveTextContent("Request failed");
+  expect(screen.getByLabelText("Your question")).toHaveValue("¿Cuántos créditos llevo?");
+  expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+});

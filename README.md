@@ -16,6 +16,8 @@ come from the shell and the portal never knows the gateway URL or the token (nor
 verified on the built bundle by `scripts/check-isolation.sh`). A reply can take up to the
 advisor's 120 s budget, so the chat waits longer than the shell's default; a degraded reply
 (no model, or the circuit open) is shown as such and the rest of Qampus keeps working (D-02).
+Over the per-student message quota (`#53`) the advisor answers `429` with `Retry-After`; the chat
+says in Spanish how many minutes to wait and keeps the question in the box.
 
 Specification: `07-api/contracts/openapi/qone-advisor-api.yaml` (AD-01..AD-08),
 `09-microservices/services/06-advisor-api`, ADR-003, ADR-007 and ADR-009 in `qone-docs`.

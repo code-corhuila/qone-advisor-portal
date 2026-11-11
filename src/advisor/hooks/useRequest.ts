@@ -40,6 +40,8 @@ export interface ApiFailure {
   traceId?: string;
   /** The message of the error envelope, meant for the person on business rules (422). */
   serverMessage?: string;
+  /** Seconds from Retry-After, when the service sent it (a 429 of the message quota, #53). */
+  retryAfterSeconds?: number;
 }
 
 export function failureOf(error: Error): ApiFailure {

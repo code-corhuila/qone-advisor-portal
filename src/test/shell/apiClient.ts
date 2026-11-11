@@ -1,7 +1,8 @@
 // Test double of `shell/apiClient` (the real one lives in qone-front). It keeps the contract
 // the portal relies on: relative paths to the gateway, JSON, bearer token, X-Correlation-Id,
-// Idempotency-Key, the error envelope as a thrown error with `status`, `code`, `traceId` and
-// a person-facing `message`. Used only by Vitest through the alias in vite.config.ts.
+// Idempotency-Key, the error envelope as a thrown error with `status`, `code`, `traceId`, a
+// person-facing `message` and the seconds of Retry-After. Used only by Vitest through the
+// alias in vite.config.ts.
 import { testSession } from "./session";
 
 export interface RequestOptions {
@@ -18,6 +19,7 @@ export class ApiError extends Error {
     readonly traceId: string,
     readonly serverMessage: string,
     readonly details: Array<{ field: string; message: string }> = [],
+    readonly retryAfterSeconds?: number,
   ) {
     super(status === 0 ? "Could not reach Qampus." : `Request failed (${code}).`);
     this.name = "ApiError";
@@ -50,7 +52,9 @@ async function request<T>(method: string, path: string, body?: unknown, options:
   if (response.ok) return parsed as T;
   const env = parsed as { error?: string; message?: string; traceId?: string; details?: Array<{ field: string; message: string }> } | undefined;
   if (response.status === 401) testSession.reset();
-  throw new ApiError(response.status, env?.error ?? "INTERNAL_ERROR", env?.traceId ?? "", env?.message ?? "", env?.details ?? []);
+  const retryAfter = response.headers.get("Retry-After");
+  const seconds = retryAfter && /^\d+$/.test(retryAfter.trim()) ? Number(retryAfter.trim()) : undefined;
+  throw new ApiError(response.status, env?.error ?? "INTERNAL_ERROR", env?.traceId ?? "", env?.message ?? "", env?.details ?? [], seconds);
 }
 
 export const DEFAULT_TIMEOUT_MS = 10_000;

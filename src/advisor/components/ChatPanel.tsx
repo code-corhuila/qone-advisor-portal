@@ -3,6 +3,7 @@ import { advisorApi } from "../api/advisorApi";
 import { failureOf, useRequest } from "../hooks/useRequest";
 import { useIdempotencyKey } from "../model/idempotency";
 import { MESSAGE_MAX, type Message, type Plan } from "../model/advisor";
+import { quotaMessage } from "../model/quota";
 import { PlanCard } from "./PlanCard";
 import { RequestFailure } from "./RequestFailure";
 import { RichText } from "./RichText";
@@ -39,7 +40,8 @@ function AdvisorAvatar() {
 // shown oldest first. A question shows at once with the advisor thinking below it until the reply,
 // which may take up to the advisor's budget; meanwhile the person may type, not send. The key of a
 // message is kept until it succeeds, so a retry never asks twice; on a failure the question goes
-// back to the box. A degraded reply is marked: the rest of Qampus keeps working (D-02).
+// back to the box. A degraded reply is marked: the rest of Qampus keeps working (D-02). Over the
+// per-student message quota (#53) the advisor answers 429 and the chat says when to try again.
 export function ChatPanel({ conversationId }: { conversationId: string }) {
   const user = useSessionUser();
   const history = useRequest((signal) => advisorApi.messages(conversationId, { limit: 50 }, signal), [conversationId]);
@@ -86,8 +88,9 @@ export function ChatPanel({ conversationId }: { conversationId: string }) {
       reset();
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error(String(cause));
-      const { traceId, serverMessage } = failureOf(error);
-      const message = serverMessage || error.message;
+      const { status, code, traceId, serverMessage, retryAfterSeconds } = failureOf(error);
+      const overQuota = status === 429 && code === "TOO_MANY_REQUESTS";
+      const message = overQuota ? quotaMessage(retryAfterSeconds) : serverMessage || error.message;
       setFailure(traceId ? { message, traceId } : { message });
       setText((typed) => typed || content);
     } finally {
