@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { delay, http } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { App } from "../App";
 import { advisorFixtures } from "../../mocks/fixtures/advisor";
@@ -8,7 +8,7 @@ import { reset, seedPlan } from "../../mocks/handlers/advisor";
 import { server } from "../../mocks/server";
 import { testSession } from "../../test/shell/session";
 
-const laura = { id: advisorFixtures.students.laura.id, role: "STUDENT" as const, name: "Laura Gómez" };
+const student01 = { id: advisorFixtures.students.student01.id, role: "STUDENT" as const, name: "Estudiante Demo 01" };
 
 function open(path: string) {
   render(
@@ -27,7 +27,7 @@ async function ask(text: string) {
 
 beforeEach(() => {
   reset();
-  testSession.signInAs(laura);
+  testSession.signInAs(student01);
 });
 
 test("the conversations are listed and a new one opens", async () => {
@@ -69,7 +69,7 @@ test("a dismissed plan shows no actions", async () => {
 });
 
 test("the reason of a rejected saga is shown", async () => {
-  const plan = advisorFixtures.planFor(advisorFixtures.conversation.id, laura.id, new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
+  const plan = advisorFixtures.planFor(advisorFixtures.conversation.id, student01.id, new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   plan.summary.subjectName = "Sistemas Distribuidos";
   plan.summary.subjectCode = "ISW-604";
   seedPlan(plan);
@@ -80,7 +80,7 @@ test("the reason of a rejected saga is shown", async () => {
 });
 
 test("an expired plan cannot be confirmed and says so", async () => {
-  const plan = advisorFixtures.planFor(advisorFixtures.conversation.id, laura.id, "2026-01-01T00:00:00Z");
+  const plan = advisorFixtures.planFor(advisorFixtures.conversation.id, student01.id, "2026-01-01T00:00:00Z");
   seedPlan(plan);
   const { PlanCard } = await import("../components/PlanCard");
   render(<PlanCard initial={plan} />);
@@ -96,7 +96,7 @@ test("a degraded reply is marked and the chat keeps working", async () => {
 });
 
 test("another person's conversation is not found", async () => {
-  testSession.signInAs({ id: advisorFixtures.students.santiago.id, role: "STUDENT", name: "Santiago Rojas" });
+  testSession.signInAs({ id: advisorFixtures.students.student02.id, role: "STUDENT", name: "Estudiante Demo 02" });
   open(`/advisor/c/${advisorFixtures.conversation.id}`);
   expect(await screen.findByRole("alert")).toBeInTheDocument();
 });
@@ -143,3 +143,23 @@ test("a new conversation greets the student and a suggestion asks it", async () 
   expect(within(list).getAllByRole("listitem")[1]).toHaveTextContent("11 de 42");
 });
 
+test("over the message quota the chat says when to try again and keeps the question (#53)", async () => {
+  server.use(
+    http.post("*/api/v1/advisor/conversations/:id/messages", () =>
+      HttpResponse.json(
+        { error: "TOO_MANY_REQUESTS", message: "message quota reached: 30 per hour", traceId: "trace-429" },
+        { status: 429, headers: { "Retry-After": "1200" } },
+      ),
+    ),
+  );
+  open(`/advisor/c/${advisorFixtures.conversation.id}`);
+  const list = await screen.findByRole("list", { name: "Messages" });
+  await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(2));
+
+  await ask("¿Cuántos créditos llevo?");
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Enviaste muchos mensajes en poco tiempo. Intenta de nuevo en 20 minutos.");
+  expect(screen.getByRole("alert")).not.toHaveTextContent("Request failed");
+  expect(screen.getByLabelText("Your question")).toHaveValue("¿Cuántos créditos llevo?");
+  expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+});

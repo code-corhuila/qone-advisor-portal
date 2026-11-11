@@ -119,7 +119,7 @@ export function advisorHandlers({ http, HttpResponse }: Msw) {
   ];
 }
 
-/** Test support: back to the fixtures (Laura's earlier conversation, no plans). */
+/** Test support: back to the fixtures (Estudiante Demo 01's earlier conversation, no plans). */
 export function reset(): void {
   conversations = [{ ...advisorFixtures.conversation }];
   messages = advisorFixtures.messages.map((m) => ({ ...m }));
