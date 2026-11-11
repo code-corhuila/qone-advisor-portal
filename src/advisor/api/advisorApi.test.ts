@@ -3,12 +3,12 @@ import { reset } from "../../mocks/handlers/advisor";
 import { advisorFixtures } from "../../mocks/fixtures/advisor";
 import { testSession } from "../../test/shell/session";
 
-const laura = { id: advisorFixtures.students.laura.id, role: "STUDENT" as const, name: "Laura Gómez" };
-const santiago = { id: advisorFixtures.students.santiago.id, role: "STUDENT" as const, name: "Santiago Rojas" };
+const student01 = { id: advisorFixtures.students.student01.id, role: "STUDENT" as const, name: "Estudiante Demo 01" };
+const student02 = { id: advisorFixtures.students.student02.id, role: "STUDENT" as const, name: "Estudiante Demo 02" };
 
 beforeEach(() => {
   reset();
-  testSession.signInAs(laura);
+  testSession.signInAs(student01);
 });
 
 test("a conversation is created once per key and listed newest first", async () => {
@@ -39,7 +39,7 @@ test("confirming answers with the saga id and the settled plan; dismissing it la
 
 test("another student's conversation and plan do not exist", async () => {
   const { plan } = await advisorApi.send(advisorFixtures.conversation.id, "matricúlame", "message-key-3");
-  testSession.signInAs(santiago);
+  testSession.signInAs(student02);
   await expect(advisorApi.messages(advisorFixtures.conversation.id)).rejects.toMatchObject({ status: 404 });
   await expect(advisorApi.plan(plan!.id)).rejects.toMatchObject({ status: 404 });
 });
