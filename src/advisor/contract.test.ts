@@ -18,7 +18,7 @@ describe("advisor fixtures against qone-advisor-api.yaml", () => {
   });
 
   it("a proposed plan, the reply that carries it and its confirmation match", () => {
-    const plan = advisorFixtures.planFor(advisorFixtures.conversation.id, advisorFixtures.students.laura.id, "2026-10-12T15:00:00Z");
+    const plan = advisorFixtures.planFor(advisorFixtures.conversation.id, advisorFixtures.students.student01.id, "2026-10-12T15:00:00Z");
     expectValid(advisor.schema("Plan"), plan, "plan");
     expect(plan.expiresAt).toBe("2026-10-12T15:10:00Z");
     expectValid(advisor.response("post", "/advisor/conversations/{id}/messages", 201), { message: advisorFixtures.messages[1], plan, degraded: false }, "reply");
@@ -28,7 +28,7 @@ describe("advisor fixtures against qone-advisor-api.yaml", () => {
   });
 
   it("rejects a plan that drifts from the contract (an unknown status)", () => {
-    const plan = { ...advisorFixtures.planFor(advisorFixtures.conversation.id, advisorFixtures.students.laura.id, "2026-10-12T15:00:00Z"), status: "PENDING" };
+    const plan = { ...advisorFixtures.planFor(advisorFixtures.conversation.id, advisorFixtures.students.student01.id, "2026-10-12T15:00:00Z"), status: "PENDING" };
     expect(advisor.schema("Plan")(plan)).toBe(false);
   });
 });
